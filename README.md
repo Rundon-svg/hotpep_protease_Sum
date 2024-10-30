@@ -2,6 +2,16 @@
 
 This Python script summarizes peptidase annotation results from multiple species using data from the **Hotpep_protease** tool for my project.
 
+
+## Update 20241030
+
+Added the -family parameter.
+
+- **-family present**: summary_statistics.csv will merge subfamily into their corresponding family rows, facilitating comparisons at the family level.
+- **-family absent**: summary_statistics.csv will include a mix of subfamily rows and some family rows (for families without subfamilies).
+
+
+
 ## Input Data Structure
 
 The test input data comes from Hotpep_protease(https://www.sciencedirect.com/science/article/pii/S2666952820300431), with each species' protein sequence files (longest deduplicated collections via CD-HIT) resulting in one output folder per species, obtained using Hotpep's default parameters (except viral).
@@ -60,7 +70,7 @@ pip install pandas
 
 
 ```bash
-python hotpep_statistics_multi_en.py -in /path/to/input_folder
+python hotpep_statistics_multi_en.py -in /path/to/input_folder -family
 ```
 
 This will process the data and output the results in the same directory.
