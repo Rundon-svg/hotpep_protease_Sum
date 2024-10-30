@@ -62,24 +62,49 @@ def summarize_peptidase_results(input_path):
         cat_row.index = [f"{cat}"]
         summary_stats = pd.concat([summary_stats, cat_row], axis=0)
     
-    # Calculate gene count for each Family and SubFamily
-    for cat in MEROPS_CATEGORIES:
-        cat_df = combined_df[combined_df.index.str.startswith(cat)]
-        for family in sorted(cat_df.index.str[:2].unique()):
-            family_df = cat_df[cat_df.index.str.startswith(family)]
-            if not family_df.empty:
-                family_row = pd.DataFrame(family_df.sum(axis=0)).T
-                family_row.index = [f"{family}"]
-                summary_stats = pd.concat([summary_stats, family_row], axis=0)
+    # Calculate gene count for each Family and SubFamily without renaming family
+    for family in combined_df.index.unique():
+        family_df = combined_df.loc[family]
+        if isinstance(family_df, pd.Series):
+            family_df = pd.DataFrame(family_df).T
+        family_row = pd.DataFrame(family_df.sum(axis=0)).T
+        family_row.index = [family]  # Use original family name
+        summary_stats = pd.concat([summary_stats, family_row], axis=0)
     
     # Save the summary statistics table
     summary_stats.to_csv("summary_statistics.csv")
     print("Summary completed! 'combined_summary.csv' and 'summary_statistics.csv' have been generated.")
 
+def merge_subfamilies(summary_stats_path):
+    """Modify summary_statistics.csv to merge subfamilies into their family level if the -family argument is used."""
+    df = pd.read_csv(summary_stats_path, index_col=0)
+    
+    # Initialize merged_df with the same columns as df
+    merged_df = pd.DataFrame(columns=df.columns)
+    
+    # Process each family and subfamily
+    for index in df.index:
+        family = index[:3] if len(index) > 3 else index  # Extract the family name (first 3 characters)
+        
+        # If family is already in merged_df, sum the values, otherwise add the new family
+        if family in merged_df.index:
+            merged_df.loc[family] += df.loc[index]
+        else:
+            merged_df.loc[family] = df.loc[index]
+    
+    # Save the modified summary_statistics.csv
+    merged_df.to_csv("summary_statistics.csv")
+    print("Subfamily rows merged successfully! Updated 'summary_statistics.csv' has been saved.")
+
 # Main entry point
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Summarize peptidase prediction results across multiple species.")
     parser.add_argument("-in", "--input_path", required=True, help="Path to the folder containing all species results.")
+    parser.add_argument("-family", action="store_true", help="Merge subfamilies into family level in summary statistics.")
     args = parser.parse_args()
     
     summarize_peptidase_results(args.input_path)
+    
+    # If -family argument is used, merge subfamilies in summary_statistics.csv
+    if args.family:
+        merge_subfamilies("summary_statistics.csv")
